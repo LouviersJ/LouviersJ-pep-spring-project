@@ -1,18 +1,10 @@
 package com.example.controller;
-import java.sql.SQLException;
-import org.jboss.logging.Messages;
-import org.springframework.data.repository.RepositoryDefinition;
+import java.util.List;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import com.example.entity.*;
 import com.example.service.*;
 
@@ -25,13 +17,18 @@ import com.example.service.*;
  */
 @RestController
 public class SocialMediaController {
+    @Autowired
+    private MessageService messageService;
+    @Autowired
+    private AccountService accountService;
+
     @PostMapping("/register")
     public ResponseEntity<Account> addAccount(@RequestBody Account account){
         if(account.getUsername().length() > 0 && account.getPassword().length() >= 4)
             try{
-                AccountService.addAccount(account);
+                accountService.addAccount(account);
                 return ResponseEntity.ok(account);
-            }catch(SQLException e){
+            }catch(DataAccessException e){
                 return ResponseEntity.status(409).build();
             }
 
@@ -40,8 +37,13 @@ public class SocialMediaController {
 
     @PostMapping("/login")
     public ResponseEntity<Account> login(@RequestBody Account account){
-        if(AccountService.login(account)!=null)
-            return ResponseEntity.ok(AccountService.login(account));
+        String username = account.getUsername();
+        String password = account.getPassword();
+
+        boolean account_exists = accountService.checkAccount(username, password);
+
+        if(account_exists)
+            return ResponseEntity.ok(accountService.findByUsername(username));
         return ResponseEntity.status(401).build();
     }
 
@@ -50,38 +52,38 @@ public class SocialMediaController {
         int message_length = message.getMessageText().length();
 
         if(message_length > 0 && message_length < 255){
-            MessageService.addMessage(message);
+            messageService.addMessage(message);
             return ResponseEntity.ok(message);
         }
+        return ResponseEntity.status(400).build();
     }
 
     @GetMapping("/messages")
-    public ResponseEntity<Message[]> getAllMessages()
-        {return ResponseEntity.ok(MessageService.getAllMessages());}
+    public ResponseEntity<List<Message>> getAllMessages()
+        {return ResponseEntity.ok(messageService.getAllMessages());}
 
     @GetMapping("/messages/{message_id}")
     public ResponseEntity<Message> getMessage(@PathVariable("message_id") int id)
-        {return ResponseEntity.ok(MessageService.getMessage(id));}
+        {return ResponseEntity.ok(messageService.getMessage(id));}
 
     @DeleteMapping("/messages/{message_id}")
     public ResponseEntity<Integer> deleteMessage(@PathVariable("message_id") int id ){
-        int rows_deleted = MessageService.deleteMessage(id);
+        int rows_deleted = messageService.deleteMessage(id);
         return rows_deleted > 0 ? ResponseEntity.ok(rows_deleted) : ResponseEntity.ok().build(); 
     }
 
     @PatchMapping("/messages/{message_id}")
-    public ResponseEntity<Integer> updateMessage(@RequestBody Message message, @PathVariable("message_id") int id){
-        int rows_updated = MessageService.updateMessage(message, id);
-        int message_length = message.getMessageText().length();
+    public ResponseEntity<Integer> updateMessage(@RequestBody String message_text, @PathVariable("message_id") int id){
+        int message_length = message_text.length();
 
-        if(rows_updated > 0 && message_length > 0 && message_length < 255)
-            return ResponseEntity.ok(rows_updated);
+        if(messageService.existsByMessageId(id) && message_length > 0 && message_length < 255)
+            return ResponseEntity.ok(1);
 
         return ResponseEntity.status(400).build();
     }
 
     @GetMapping("/accounts/{account_id}/messages")
-    public ResponseEntity<Message[]> getMessagesFromUser(@PathVariable("account_id") int id)
-        {return ResponseEntity.ok(AccountService.getMessagesFromUser(id));}
+    public ResponseEntity<List<Message>> getMessagesFromUser(@PathVariable("account_id") int id)
+        {return ResponseEntity.ok(messageService.getAccountMessages(id));}
 
 }
