@@ -4,7 +4,6 @@ import org.springframework.stereotype.Service;
 import com.example.entity.Message;
 import com.example.repository.MessageRepository;
 import java.util.List;
-
 import javax.transaction.Transactional;
 
 @Service
@@ -24,6 +23,7 @@ public class MessageService {
         return messageRepository.findByMessageId(message_id);
     }
 
+    @Transactional
     public int deleteMessage(int message_id) {
         return messageRepository.deleteByMessageId(message_id);
     }
