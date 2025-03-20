@@ -3,8 +3,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import com.example.entity.*;
 import com.example.repository.AccountRepository;
-import com.example.repository.MessageRepository;
-import java.util.List;
 
 @Service
 public class AccountService {
@@ -21,5 +19,4 @@ public class AccountService {
     public Account addAccount(Account account){
         return accountRepository.save(account);
     }
-
 }
